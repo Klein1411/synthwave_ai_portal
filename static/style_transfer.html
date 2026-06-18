@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Style Transfer - Synthwave Portal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .st-container {
+            max-width: 1000px;
+            margin: 80px auto;
+            background: var(--glass-bg);
+            padding: 40px;
+            border-radius: 15px;
+            border: 1px solid var(--neon-purple);
+            box-shadow: 0 0 20px rgba(176, 38, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        .upload-section {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+            gap: 20px;
+        }
+        .image-box {
+            flex: 1;
+            text-align: center;
+        }
+        .image-box img, .image-box canvas {
+            max-width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border: 2px dashed var(--neon-cyan);
+            border-radius: 10px;
+            margin-top: 15px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .controls-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .status-text {
+            color: var(--neon-yellow);
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px var(--neon-cyan);
+        }
+        .style-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .style-thumb {
+            width: 80px;
+            height: 80px;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            object-fit: cover;
+        }
+        .style-thumb.selected {
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+        input[type="file"] {
+            margin-top: 10px;
+            color: var(--neon-cyan);
+        }
+    </style>
+</head>
+<body>
+    <div class="retro-bg">
+        <div class="grid"></div>
+    </div>
+
+    <a href="index.html" class="back-btn">← Back to Portal</a>
+
+    <div class="st-container">
+        <h2>AI In-Browser Style Transfer</h2>
+        <p class="subtitle">Chạy hoàn toàn cục bộ trên trình duyệt của bạn với TensorFlow.js</p>
+
+        <div class="upload-section">
+            <div class="image-box">
+                <h3>1. Ảnh của bạn</h3>
+                <input type="file" id="content-img-upload" accept="image/*">
+                <img id="content-img" src="https://images.unsplash.com/photo-1514315384763-ba401779410f?auto=format&fit=crop&w=300&q=80" crossorigin="anonymous">
+            </div>
+            
+            <div class="image-box">
+                <h3>2. Chọn Style</h3>
+                <img id="style-img" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg" crossorigin="anonymous">
+                <div class="style-options">
+                    <!-- Base64 or external URLs for styles. Using wikipedia public domain. -->
+                    <img class="style-thumb selected" src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/300px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg" crossorigin="anonymous">
+                    <img class="style-thumb" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tsunami_by_hokusai_19th_century_classic_ukiyo_e_japanese_art.jpg/300px-Tsunami_by_hokusai_19th_century_classic_ukiyo_e_japanese_art.jpg" crossorigin="anonymous">
+                    <img class="style-thumb" src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg/300px-Edvard_Munch%2C_1893%2C_The_Scream%2C_oil%2C_tempera_and_pastel_on_cardboard%2C_91_x_73_cm%2C_National_Gallery_of_Norway.jpg" crossorigin="anonymous">
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <button id="stylize-btn" class="btn-neon">Stylize Image</button>
+            <div id="status" class="status-text">Đang chờ lệnh...</div>
+        </div>
+
+        <div class="upload-section" style="margin-top: 40px;">
+            <div class="image-box" style="flex: none; width: 100%; max-width: 500px; margin: 0 auto;">
+                <h3>Kết quả</h3>
+                <canvas id="stylized-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- TensorFlow.js and Magenta.js wrapper if needed, or we just write tf code. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+    <script src="js/style_transfer.js"></script>
+</body>
+</html>

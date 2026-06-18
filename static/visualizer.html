@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Visualizer - Synthwave Portal</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { overflow: hidden; }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+        }
+        .controls {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--glass-bg);
+            padding: 20px 40px;
+            border-radius: 15px;
+            border: 1px solid var(--neon-cyan);
+            backdrop-filter: blur(10px);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        input[type="file"] {
+            color: var(--neon-cyan);
+        }
+        #play-btn {
+            background: var(--neon-pink);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 1.2rem;
+            text-shadow: 0 0 5px var(--neon-cyan);
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-btn">← Back to Portal</a>
+    
+    <div id="canvas-container"></div>
+
+    <div class="controls">
+        <input type="file" id="audio-upload" accept="audio/*">
+        <button id="play-btn">Play / Pause</button>
+    </div>
+
+    <!-- Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/visualizer.js"></script>
+</body>
+</html>
