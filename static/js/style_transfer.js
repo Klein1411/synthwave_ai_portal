@@ -1,14 +1,15 @@
-// Model URLs - using TensorFlow Hub's arbitrary image stylization model
-const modelUrl = 'https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2';
+// Reiichiro Nakano's TFJS ported models for Arbitrary Image Stylization
+const styleNetUrl = 'https://cdn.jsdelivr.net/gh/reiinakano/arbitrary-image-stylization-tfjs@master/saved_model_style_js/model.json';
+const transformNetUrl = 'https://cdn.jsdelivr.net/gh/reiinakano/arbitrary-image-stylization-tfjs@master/saved_model_transformer_separable_js/model.json';
 
-let model = null;
+let styleNet = null;
+let transformNet = null;
 
 const statusEl = document.getElementById('status');
 const stylizeBtn = document.getElementById('stylize-btn');
 const contentImg = document.getElementById('content-img');
 const styleImg = document.getElementById('style-img');
 const canvas = document.getElementById('stylized-canvas');
-const ctx = canvas.getContext('2d');
 
 const contentUpload = document.getElementById('content-img-upload');
 const styleThumbs = document.querySelectorAll('.style-thumb');
@@ -31,7 +32,7 @@ styleThumbs.forEach(thumb => {
 });
 
 async function loadModel() {
-    if (model) return;
+    if (styleNet && transformNet) return;
     
     // Check GPU backend first
     await tf.ready();
@@ -45,8 +46,9 @@ async function loadModel() {
     }
 
     try {
-        // Load the graph model from TFHub directly
-        model = await tf.loadGraphModel(modelUrl, {fromTFHub: true});
+        // Load both the Style and Transform networks
+        styleNet = await tf.loadGraphModel(styleNetUrl);
+        transformNet = await tf.loadGraphModel(transformNetUrl);
         statusEl.innerText = `✅ Tải Model thành công! Sẵn sàng xử lý với ${backend.toUpperCase()}.`;
     } catch (err) {
         console.error(err);
@@ -55,31 +57,27 @@ async function loadModel() {
 }
 
 async function stylize() {
-    if (!model) {
+    if (!styleNet || !transformNet) {
         await loadModel();
     }
-    if (!model) return;
+    if (!styleNet || !transformNet) return;
 
     statusEl.innerText = 'Đang xử lý Stylize... (Sẽ tốn nhiều CPU/GPU)';
     
-    // We use tf.tidy to clean up memory automatically
+    // Allow UI to update
     await tf.nextFrame();
     
     try {
         tf.tidy(() => {
-            // Resize images for performance (model expects ~256 for style, anything for content)
-            const contentTensor = tf.browser.fromPixels(contentImg)
-                .toFloat()
-                .div(tf.scalar(255))
-                .expandDims();
-                
-            const styleTensor = tf.browser.fromPixels(styleImg)
-                .toFloat()
-                .div(tf.scalar(255))
-                .expandDims();
+            // Read images
+            let contentTensor = tf.browser.fromPixels(contentImg).toFloat().div(tf.scalar(255)).expandDims();
+            let styleTensor = tf.browser.fromPixels(styleImg).toFloat().div(tf.scalar(255)).expandDims();
 
-            // Run model
-            const result = model.predict([contentTensor, styleTensor]);
+            // 1. Run the style image through the StyleNet to get the style bottleneck representation (100-D vector)
+            const styleBottleneck = styleNet.predict(styleTensor);
+            
+            // 2. Run the content image and the style bottleneck through the TransformNet
+            const result = transformNet.predict([contentTensor, styleBottleneck]);
             
             // Output is [1, H, W, 3] in range [0, 1]
             const squeezed = result.squeeze();

@@ -5,8 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Synthwave AI Portal</title>
     <link rel="stylesheet" href="css/style.css">
+    <!-- Import Map for resolving bare specifiers from unpkg -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
+    <div id="error-log" style="position: fixed; top: 0; left: 0; background: red; color: white; z-index: 9999; padding: 10px; display: none; font-family: monospace; white-space: pre-wrap;"></div>
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            const errDiv = document.getElementById('error-log');
+            errDiv.style.display = 'block';
+            errDiv.innerText += 'ERROR: ' + msg + '\n' + (error ? error.stack : '') + '\n\n';
+            return false;
+        };
+        const origError = console.error;
+        console.error = function() {
+            const errDiv = document.getElementById('error-log');
+            errDiv.style.display = 'block';
+            errDiv.innerText += 'CONSOLE.ERROR: ' + Array.from(arguments).join(' ') + '\n\n';
+            origError.apply(console, arguments);
+        };
+    </script>
     <!-- WebGL Background Canvas -->
     <canvas id="bg-canvas"></canvas>
     
@@ -45,7 +70,6 @@
     </div>
 
     <script src="js/main.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="js/bg_animation.js"></script>
+    <script type="module" src="js/bg_animation.js"></script>
 </body>
 </html>

@@ -14,6 +14,7 @@ static_dir = BASE_DIR / "static"
 os.makedirs(str(static_dir), exist_ok=True)
 
 # Mount the static directory
+app.mount("/static/assets", StaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 @app.get("/")
