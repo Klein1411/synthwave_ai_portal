@@ -118,10 +118,10 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
-// Standard Neon Bloom (No Mega Bloom option anymore)
+// Soft Neon Bloom
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-bloomPass.threshold = 0.1;
-bloomPass.strength = 1.2;
+bloomPass.threshold = 0.15;
+bloomPass.strength = 0.6;
 bloomPass.radius = 0.5;
 composer.addPass(bloomPass);
 
@@ -140,7 +140,8 @@ dirLight.position.set(0, 10, -20);
 scene.add(dirLight);
 
 // --- 1. Glowing Road ---
-const gridHelper = new THREE.GridHelper(200, 100, 0xff2a6d, 0x05d9e8);
+// Brighter grid to compensate for lower global bloom
+const gridHelper = new THREE.GridHelper(200, 100, 0xff0080, 0x00ffff);
 gridHelper.position.y = -1;
 scene.add(gridHelper);
 
@@ -269,41 +270,70 @@ for (let i = 0; i < 40; i++) {
     props.push(prop);
 }
 
-// --- 4. The Synthwave Sun ---
+// --- 4. The Synthwave Sun & Starry Sky ---
+// A. Starry Sky (Points)
+const starCount = 5000;
+const starPositions = new Float32Array(starCount * 3);
+for (let i = 0; i < starCount * 3; i += 3) {
+    starPositions[i] = (Math.random() - 0.5) * 800;
+    starPositions[i+1] = (Math.random() - 0.5) * 400 + 100;
+    starPositions[i+2] = -Math.random() * 800; // Far behind
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+const starMat = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 1.5,
+    sizeAttenuation: true
+});
+const stars = new THREE.Points(starGeo, starMat);
+scene.add(stars);
+
+// B. Sun (Audio-Reactive Shader)
 const sunGeo = new THREE.CircleGeometry(40, 64);
 const sunMat = new THREE.ShaderMaterial({
     uniforms: {
         time: { value: 0 },
+        uBass: { value: 0 },
         colorTop: { value: new THREE.Color(0xff0080) },
         colorBottom: { value: new THREE.Color(0xffd700) }
     },
     vertexShader: `
+        uniform float uBass;
         varying vec2 vUv;
         void main() {
             vUv = uv;
-            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            // Scale sun smoothly based on bass
+            vec3 newPosition = position * (1.0 + uBass * 0.3);
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
         }
     `,
     fragmentShader: `
         uniform float time;
+        uniform float uBass;
         uniform vec3 colorTop;
         uniform vec3 colorBottom;
         varying vec2 vUv;
         
         void main() {
-            vec3 color = mix(colorBottom, colorTop, vUv.y);
-            float scanline = step(0.1, fract(vUv.y * 20.0 - time * 0.5));
+            // Emphasize colors when bass hits
+            vec3 activeTop = mix(colorTop, vec3(1.0, 0.0, 0.0), uBass * 0.5);
+            vec3 color = mix(colorBottom, activeTop, vUv.y);
+            
+            // Scanlines move faster and get slightly thicker with bass
+            float scanline = step(0.1 + uBass * 0.1, fract(vUv.y * 20.0 - time * (0.5 + uBass * 2.0)));
             if(vUv.y < 0.5) {
                 color *= scanline;
             }
-            gl_FragColor = vec4(color, 1.0);
+            // Boost overall brightness to pierce through lower global bloom
+            gl_FragColor = vec4(color * 1.5, 1.0);
         }
     `,
     transparent: true,
     fog: false
 });
 const sunMesh = new THREE.Mesh(sunGeo, sunMat);
-sunMesh.position.set(0, 15, -150);
+sunMesh.position.set(0, 15, -200); // Moved further back
 scene.add(sunMesh);
 
 
@@ -392,29 +422,31 @@ function animate() {
         }
     });
     
+    // Pass Bass to Sun Shader
+    sunMat.uniforms.uBass.value = smoothedBass;
+    
     // 4. Car Animation
     // Wheels spinning
     wheels.forEach(w => w.rotation.x -= speed * 0.5);
-    // Bouncing chassis based on bass
-    const bounce = Math.sin(time * 20) * 0.05 + smoothedBass * 0.2;
+    // Gentle bouncing chassis (removed chaotic recoil)
+    const bounce = Math.sin(time * 20) * 0.05 + smoothedBass * 0.1;
     chassis.position.y = 0.4 + bounce;
     cabin.position.y = 0.85 + bounce;
     tailLight.position.y = 0.5 + bounce;
-    // Car Recoil (moves backward slightly when bass hits)
-    carGroup.position.z = 4 + smoothedBass * 1.5;
     
-    // 5. Camera Shake
-    if (smoothedBass > 0.5) {
-        camera.position.x = (Math.random() - 0.5) * smoothedBass * 0.5;
-        camera.position.y = 2 + (Math.random() - 0.5) * smoothedBass * 0.5;
-    } else {
-        camera.position.x += (0 - camera.position.x) * 0.1;
-        camera.position.y += (2 - camera.position.y) * 0.1;
+    // 5. Starry Sky Motion (A+B)
+    const starAttr = starGeo.attributes.position;
+    for(let i = 0; i < starAttr.count; i++) {
+        let z = starAttr.getZ(i);
+        z += speed * 0.5; // Stars moving towards camera
+        if(z > 10) z -= 800; // Reset far back
+        starAttr.setZ(i, z);
     }
+    starAttr.needsUpdate = true;
     
-    // 6. Post Processing (VHS Glitch on strong treble/bass)
-    rgbShiftPass.uniforms['amount'].value = 0.0015 + (smoothedTreble * 0.02) + (smoothedBass * 0.01);
-    bloomPass.strength = 1.2 + smoothedBass * 1.0;
+    // 6. Post Processing (Subtle Glitch)
+    rgbShiftPass.uniforms['amount'].value = 0.0015 + (smoothedTreble * 0.01) + (smoothedBass * 0.005);
+    bloomPass.strength = 0.6 + smoothedBass * 0.2;
 
     composer.render();
 }
