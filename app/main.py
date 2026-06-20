@@ -13,9 +13,19 @@ static_dir = BASE_DIR / "static"
 # Ensure static directory exists
 os.makedirs(str(static_dir), exist_ok=True)
 
+class NoCacheStaticFiles(StaticFiles):
+    def is_not_modified(self, response_headers, request_headers) -> bool:
+        return False
+    async def get_response(self, path: str, scope):
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+        return resp
+
 # Mount the static directory
-app.mount("/static/assets", StaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+app.mount("/static/assets", NoCacheStaticFiles(directory=str(BASE_DIR / "assets")), name="assets")
+app.mount("/static", NoCacheStaticFiles(directory=str(static_dir)), name="static")
 
 @app.get("/")
 async def root():
