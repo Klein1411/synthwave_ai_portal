@@ -21,10 +21,48 @@ function showUI() {
     clearTimeout(uiTimeout);
     uiTimeout = setTimeout(() => {
         uiPanel.classList.add('hidden');
-    }, 3000);
+    }, 5000); // Increased to 5s so they can click buttons
 }
 document.addEventListener('mousemove', showUI);
 showUI();
+
+// --- Cinematic Camera Controls ---
+const camNormalBtn = document.getElementById('cam-normal');
+const camDriverBtn = document.getElementById('cam-driver');
+const camBirdBtn = document.getElementById('cam-bird');
+
+const camTargets = {
+    normal: { x: 0, y: 2, z: 8, lookY: 2 },
+    driver: { x: 0, y: 0.5, z: 2.5, lookY: 0.5 },
+    bird: { x: 0, y: 15, z: 20, lookY: 0 }
+};
+
+let lookObj = { y: 2 }; // Where the camera is currently looking
+
+function switchCamera(mode, btn) {
+    [camNormalBtn, camDriverBtn, camBirdBtn].forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    
+    const target = camTargets[mode];
+    
+    gsap.to(camera.position, {
+        x: target.x,
+        y: target.y,
+        z: target.z,
+        duration: 2,
+        ease: "power2.inOut"
+    });
+    
+    gsap.to(lookObj, {
+        y: target.lookY,
+        duration: 2,
+        ease: "power2.inOut"
+    });
+}
+
+camNormalBtn.addEventListener('click', () => switchCamera('normal', camNormalBtn));
+camDriverBtn.addEventListener('click', () => switchCamera('driver', camDriverBtn));
+camBirdBtn.addEventListener('click', () => switchCamera('bird', camBirdBtn));
 
 // --- Audio Setup ---
 let audioCtx, analyser, dataArray;
@@ -108,7 +146,8 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0x000000, 0.015);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(0, 2, 8); // Look slightly down
+camera.position.set(0, 2, 8); // Default
+camera.lookAt(0, 2, -100);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -443,8 +482,11 @@ function animate() {
         starAttr.setZ(i, z);
     }
     starAttr.needsUpdate = true;
+
+    // 6. Apply Camera LookAt (GSAP updates lookObj.y)
+    camera.lookAt(0, lookObj.y, -100);
     
-    // 6. Post Processing (Subtle Glitch)
+    // 7. Post Processing (Subtle Glitch)
     rgbShiftPass.uniforms['amount'].value = 0.0015 + (smoothedTreble * 0.01) + (smoothedBass * 0.005);
     bloomPass.strength = 0.6 + smoothedBass * 0.2;
 

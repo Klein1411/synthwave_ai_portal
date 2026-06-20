@@ -12,7 +12,13 @@ const fs = require('fs');
   await page.goto('http://localhost:8000/static/music_visualizer.html');
   
   // Wait a few seconds for the scene to render fully and animations to run
-  await new Promise(r => setTimeout(r, 3000));
+  await new Promise(r => setTimeout(r, 1000));
+  
+  // Click the Bird Eye view button to show off the cinematic camera
+  await page.click('#cam-bird');
+  
+  // Wait for GSAP transition to finish (2 seconds)
+  await new Promise(r => setTimeout(r, 2500));
   
   // Move mouse to trigger cursor and hover effect on the first card
   const cards = await page.$$('.card');
